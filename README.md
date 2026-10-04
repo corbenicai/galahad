@@ -60,6 +60,10 @@ Galahad has a C++ core and runs inside llama.cpp, vLLM and SGLang.
   no "close enough" like a RAG pipeline. **100/100** right vs **77** for RAGFlow.
 - **Reads only what matters.** Blaise finds the chapter a question is about, so the
   model reads **670** tokens instead of **9,700**.
+- **Read past the context window.** A text far larger than the model's context, up to
+  **50 million tokens** measured, is read in parts; each part's reading is saved, and
+  the part a question needs is given back. GPU memory stays **flat at 34.1 GB** whether
+  the text is 1 million or 50 million tokens.
 - **Memory that survives restarts**, encrypted at rest, and your key never leaves your
   machine.
 
@@ -82,7 +86,7 @@ pip install galahad-kv
 Then activate it (one command for everything):
 
 ```bash
-galahad free --org your-org --email you@company.com --accept-non-commercial
+galahad free --org <your-secret-key> --email you@company.com --accept-non-commercial
 galahad doctor          # library loads? licence valid? store writable?
 ```
 
@@ -101,12 +105,14 @@ Full guide: the [wiki](https://github.com/corbenicai/galahad/wiki).
 |---|---|---|---|
 | 💾 | **Taliesin** · the memory | Keeps what the model has read. The GPU never reads the same text twice. | **99.6%** of tokens came back from memory |
 | 📚 | **Blaise** · the library | Keeps your documents and finds the chapter a question is about. | **100/100** right, 670 tokens read instead of 9,700 |
+| 🪟 | **50M-token window** · read past the context limit | A text far past the model's context is read in parts; the window moves over disk, the GPU holds one part. | GPU memory flat **34.1 GB** at 1M and at 50M tokens |
 | ⚙️ | **Inside your own program** | The model and Galahad in one C++ program. No server, no Python. | **100/100** right, 0.65 s per question |
 
 <details><summary><b>How it works</b></summary>
 
 - **Taliesin** saves the model's KV cache to disk and restores it. It plugs in as the vLLM KV connector, the SGLang HiCache storage backend, and llama.cpp slot save and restore.
 - **Blaise** keeps your documents as exact text and returns the chapter a question is about. Text is stored byte-exact.
+- **50M-token window:** a long text is read in parts; each part's reading is saved to disk and the part is dropped from the GPU, so GPU memory stays flat while the window moves over the whole text. The part a question needs is given back and answered from. Nothing to switch on. See the [wiki](https://github.com/corbenicai/galahad/wiki/Performance#very-long-texts).
 - **Inside your own program:** llama.cpp is built into the Galahad library; your program calls its C API directly.
 
 </details>
