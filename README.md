@@ -64,8 +64,8 @@ Galahad has a C++ core and runs inside llama.cpp, vLLM and SGLang.
   **50 million tokens** measured, is read in parts; each part's reading is saved, and
   the part a question needs is given back. GPU memory stays **flat at 34.1 GB** whether
   the text is 1 million or 50 million tokens.
-- **Memory that survives restarts**, encrypted at rest, and your key never leaves your
-  machine.
+- **Memory that survives restarts**, encrypted at rest. Key custody depends on the
+  configured key provider.
 
 <p align="center">
   <img src="assets/galahad-stats.png" alt="14 times faster on vLLM with Galahad, 0.59 s per question. 100 vs 77 against RAGFlow. 99% comes back from memory. 91 to 95% right on messy real data." width="100%">
@@ -83,10 +83,16 @@ Galahad has a C++ core and runs inside llama.cpp, vLLM and SGLang.
 pip install galahad-kv
 ```
 
+Use a dedicated, stable value for `--org`. Licence registration sends this value
+to `https://api.corbenic.ai` by default, together with your email, hardware-derived
+`node_id` and `wrap_id`, and GPU metadata. Do not reuse an API token, password, or
+other credential. This value is distinct from the locally generated `org.key`
+file. See the key-provider qualification under [Encryption at rest](#trust-and-cost).
+
 Then activate it (one command for everything):
 
 ```bash
-galahad free --org <your-secret-key> --email you@company.com --accept-non-commercial
+galahad free --org "<dedicated-registration-value>" --email you@company.com --accept-non-commercial
 galahad doctor          # library loads? licence valid? store writable?
 ```
 
@@ -163,7 +169,15 @@ Full guide: the [wiki](https://github.com/corbenicai/galahad/wiki).
 
 <details><summary><b>How it works</b></summary>
 
-- **Encryption at rest:** AES-256-GCM on every saved block and on the catalogue, with keys from your own key service. With a wrong key, the store refuses to open.
+- **Encryption at rest:** AES-256-GCM protects saved blocks and the catalogue.
+  When the default file licence provider supplies storage keys in 1.31.1,
+  without a passphrase override, a licence containing `skw` replaces locally
+  generated key material. An issuer retaining that licence and
+  the registration `wrap_id` can reconstruct the default storage key and decrypt
+  cache files if it obtains them. A locally generated `org.key` does not, by
+  itself, establish exclusive customer key custody in this configuration.
+  Licences without `skw`, customer-controlled passphrases, and custom key providers
+  use different key paths. With a wrong key, the store refuses to open.
 - **Sanitizer:** checks for NaN and infinity in the number format the host declares (bf16, f16), and checks the size.
 - **FinOps:** uses your GPU price per hour and usage level. Without a price it gives no number and says what is missing.
 
