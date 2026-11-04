@@ -77,18 +77,25 @@ Galahad has a C++ core and runs inside llama.cpp, vLLM and SGLang.
 
 ## Install
 
-**Free for 1 GPU.**
+**Free on a homelab — up to 4 consumer GPUs. No licence, no account, no call home.**
 
 ```bash
 pip install galahad-kv
 ```
 
-Then activate it (one command for everything):
+Then set a store key (a passphrase + org — they *are* your encryption key; the
+same two reproduce the same key on any machine, so your memory is portable):
 
 ```bash
-galahad free --org <your-secret-key> --email you@company.com --accept-non-commercial
-galahad doctor          # library loads? licence valid? store writable?
+export GALAHAD_STORE_PASSPHRASE='a long passphrase you choose'   # >= 12 chars
+export GALAHAD_ORG='your-org'
+galahad keygen --out ~/galahad.key --org "$GALAHAD_ORG"   # optional: save the key for backup
+galahad doctor                                            # library loads? store key? store writable? GPU?
 ```
+
+Runs free on up to **4 consumer NVIDIA GeForce RTX GPUs** (a 4×RTX 5090 rig is fine).
+Datacenter cards (A100 / H100 / L40S / B200 …), more than four GPUs, and
+multi-node / Kubernetes are a separate licensed edition — [contact us](https://www.corbenic.ai).
 
 - **vLLM:** `vllm serve <model> --kv-transfer-config '{"kv_connector":"GalahadConnector","kv_role":"kv_both"}'`
 - **SGLang:** add `--hicache-storage-backend dynamic` with the Galahad backend (see the [wiki](https://github.com/corbenicai/galahad/wiki/Install))
